@@ -4,6 +4,10 @@ A Swift SignalR Client for the Asp.Net Core version of SignalR
 
 **Before filing an issue please check [Frequently Asked Questions](https://github.com/moozzyk/SignalR-Client-Swift/wiki/Frequently-Asked-Questions)**
 
+## NEW - [Swift SignalR Client Course](https://www.udemy.com/course/build-real-time-ios-apps-with-asp-net-core-signalr)
+
+Everything you need to know about using the Swift SignalR Client [in under 60 minutes](https://www.udemy.com/course/build-real-time-ios-apps-with-asp-net-core-signalr)
+
 ## Installation
 
 ### Cocoapods
@@ -22,10 +26,12 @@ pod install
 
 ### Swift Package Manager
 
-Add the following to your `Package` dependencies:
+The easiest way to is to use Use XCode UI (`File -> Add Packages...`) 
+
+Alternatively, add the following to your `Package` dependencies:
 
 ```swift
-.package(url: "https://github.com/moozzyk/SignalR-Client-Swift", .upToNextMinor(from: "0.6.0")),
+.package(url: "https://github.com/moozzyk/SignalR-Client-Swift", .upToNextMinor(from: "0.9.0")),
 ```
 
 Then include `"SignalRClient"` in your target dependencies. For example:
@@ -79,7 +85,8 @@ public class SignalRService {
 }
 ```
 
-More detailed user's guide:
+More detailed user's guides:
+ - [Swift SignalR Client Course](https://www.udemy.com/course/build-real-time-ios-apps-with-asp-net-core-signalr) - the most complete and up-to-date information on using the Swift SignalR Client
  - [Swift Client for the ASP.Net Core Version of SignalR – Part 1: Getting Started](https://blog.3d-logic.com/2019/07/28/swift-client-for-the-asp-net-core-version-of-signalr-part-1-getting-started/)
  - [Swift Client for the ASP.Net Core Version of SignalR – Part 1: Beyond the Basics](https://blog.3d-logic.com/2019/08/01/swift-client-for-the-asp-net-core-version-of-signalr-part-2-beyond-the-basics/)
  - [Automatic Reconnection in the Swift SignalR Client](https://blog.3d-logic.com/2020/06/28/automatic-reconnection-in-the-swift-signalr-client/)

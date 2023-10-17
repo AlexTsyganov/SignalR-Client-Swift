@@ -968,6 +968,7 @@ class HubConnectionTests: XCTestCase {
     }
 
     /// Only applicable to websockets transport due to requirement for skipNegotiation flag.
+    @available(OSX 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *)
     func testThatDeadlockDoesNotHappen() {
         let didStop = expectation(description: "connection stopped")
         let hubConnectionDelegate = TestHubConnectionDelegate()
@@ -1134,39 +1135,6 @@ class HubConnectionTests: XCTestCase {
         waitForExpectations(timeout: 5 /*seconds*/)
     }
 
-    func testThatHubMethodCanBeInvokedWithLegacyHttpConnection() {
-        let didOpenExpectation = expectation(description: "connection opened")
-        let didReceiveInvocationResult = expectation(description: "received invocation result")
-        let didCloseExpectation = expectation(description: "connection closed")
-
-        let message = "Hello, World!"
-        let hubConnectionDelegate = TestHubConnectionDelegate()
-        hubConnectionDelegate.connectionDidOpenHandler = { hubConnection in
-            didOpenExpectation.fulfill()
-
-            hubConnection.invoke(method: "Echo", arguments: [message], resultType: String.self) {result, error in
-                XCTAssertNil(error)
-                XCTAssertEqual(message, result)
-                didReceiveInvocationResult.fulfill()
-                hubConnection.stop()
-            }
-        }
-
-        hubConnectionDelegate.connectionDidCloseHandler = { error in
-            XCTAssertNil(error)
-            didCloseExpectation.fulfill()
-        }
-
-        let hubConnection = HubConnectionBuilder(url: TARGET_TESTHUB_URL)
-            .withHubConnectionDelegate(delegate: hubConnectionDelegate)
-            .withLegacyHttpConnection()
-            .build()
-
-        hubConnection.start()
-
-        waitForExpectations(timeout: 5 /*seconds*/)
-    }
-
     func testThatKeepAlivePingIsSentWhenInherentKeepAliveIsNotActive() {
         let didSendPingExpectation = expectation(description: "ping sent")
         didSendPingExpectation.expectedFulfillmentCount = 5
@@ -1294,7 +1262,9 @@ class TestTransportFactory: TransportFactory {
 
     func createTransport(availableTransports: [TransportDescription]) throws -> Transport {
         if availableTransports.contains(where: {$0.transportType == .webSockets}) {
-            currentTransport = WebsocketsTransport(logger: PrintLogger())
+            if #available (OSX 10.15, iOS 13.0, watchOS 6.0, tvOS 13.0, *) {
+                currentTransport = WebsocketsTransport(logger: PrintLogger())
+            }
         } else if availableTransports.contains(where: {$0.transportType == .longPolling}) {
             currentTransport = LongPollingTransport(logger: PrintLogger())
         }

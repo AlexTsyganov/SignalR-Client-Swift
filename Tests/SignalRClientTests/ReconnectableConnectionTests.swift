@@ -193,27 +193,107 @@ class ReconnectableConnectionTests: XCTestCase {
         }
     }
 
+    public func testReconnectEventsDontFireIfConnectionNeverConnected() {
+        let connectionDidFailToOpenExpectation = expectation(description: "connectionDidFailToOpen")
+        let connectionDidOpenExpectation = expectation(description: "connectionDidOpen")
+        connectionDidOpenExpectation.isInverted = true
+        let connectionDidCloseExpectation = expectation(description: "connectionDidClose")
+        connectionDidCloseExpectation.isInverted = true
+        let connectionWillReconnectExpectation = expectation(description: "connectionWillReconnect")
+        connectionWillReconnectExpectation.isInverted = true
+        let connectionDidReconnectExpectation = expectation(description: "connectionDidReconnect")
+        connectionDidReconnectExpectation.isInverted = true
+
+        let testConnection = TestConnection()
+        testConnection.openError = SignalRError.invalidNegotiationResponse(message: "Negotiation failed")
+
+        let delegate = TestConnectionDelegate()
+        let reconnectableConnection = ReconnectableConnection(connectionFactory: {return testConnection}, reconnectPolicy: DefaultReconnectPolicy(retryIntervals: [.milliseconds(10)]), callbackQueue: callbackQueue, logger: PrintLogger())
+
+        delegate.connectionDidFailToOpenHandler = { error in
+            connectionDidFailToOpenExpectation.fulfill()
+        }
+
+        delegate.connectionDidOpenHandler = { connection in
+            connectionDidOpenExpectation.fulfill()
+        }
+
+        delegate.connectionDidCloseHandler = { error in
+            connectionDidCloseExpectation.fulfill()
+        }
+
+        delegate.connectionWillReconnectHandler = { error in
+            connectionWillReconnectExpectation.fulfill()
+        }
+
+        delegate.connectionDidReconnectHandler = {
+            connectionDidReconnectExpectation.fulfill()
+        }
+
+        reconnectableConnection.delegate = delegate
+        reconnectableConnection.start()
+
+        waitForExpectations(timeout: 2 /*seconds*/)
+    }
+    
+    public func testReconnectableConnectionIgnoreStopRequestWhenDisconnected() {
+        
+        var isConnectionOpen = false
+        
+        let testConnection = TestConnection()
+        let delegate = TestConnectionDelegate()
+        let reconnectableConnection = ReconnectableConnection(connectionFactory: {return testConnection}, reconnectPolicy: NoReconnectPolicy(), callbackQueue: callbackQueue, logger: PrintLogger())
+        reconnectableConnection.delegate = delegate
+        
+        delegate.connectionDidOpenHandler = { connection in
+            isConnectionOpen = true
+        }
+        
+        delegate.connectionDidCloseHandler = { connection in
+            isConnectionOpen = false
+        }
+        
+        reconnectableConnection.start()
+        XCTAssertTrue(isConnectionOpen)
+        
+        reconnectableConnection.stop(stopError: nil)
+        XCTAssertTrue(!isConnectionOpen)
+        
+        // stop the connection while it is disconnected
+        reconnectableConnection.stop(stopError: nil)
+        XCTAssertTrue(!isConnectionOpen)
+        
+        reconnectableConnection.start()
+        XCTAssertTrue(isConnectionOpen)
+    }
+    
     class TestConnection: Connection {
         var delegate: ConnectionDelegate?
         var openError: Error?
-
+        
         var connectionId: String?
         var inherentKeepAlive = false
-
+        var isClosed: Bool = false
+        
         func start() {
             if let e = openError {
                 delegate?.connectionDidFailToOpen(error: e)
             } else {
                 delegate?.connectionDidOpen(connection: self)
+                self.isClosed = false
             }
         }
-
+        
         func send(data: Data, sendDidComplete: (Error?) -> Void) {
             sendDidComplete(nil)
         }
-
+        
         func stop(stopError: Error?) {
+            // Recreating the logic as in HTTPConnection. (the delegate method would only be called when the connection state changes to stopped. Therefore the state transition of ReconnectableConnection to disconnected will not be executed
+            guard !self.isClosed else { return }
+            self.isClosed = true
             delegate?.connectionDidClose(error: stopError)
         }
+        
     }
 }
