@@ -623,11 +623,20 @@ public class ArgumentExtractor {
     }
 
     public func argumentsPayload(prettyPrinted: Bool = true) -> String? {
-        guard let jsonPayload = try? JSONSerialization.jsonObject(with: clientInvocationMessage.payload) as? [String: Any],
-              let args = jsonPayload["arguments"] as? [Any],
-              let first = args.first,
-              let argsData = try? JSONSerialization.data(withJSONObject: first, options: prettyPrinted ? [.prettyPrinted] : []) else { return nil }
-        return String(data: argsData, encoding: .utf8)
+        let payload = clientInvocationMessage.payload
+        let `default` = { String(data: payload, encoding: .utf8) }
+        guard let jsonPayload = try? JSONSerialization.jsonObject(with: payload) as? [String: Any],
+              let args = jsonPayload["arguments"] as? [Any] else {
+            return `default`()
+        }
+        return optionalString(from: args.first, prettyPrinted) ?? optionalString(from: args, prettyPrinted) ?? `default`()
+    }
+    
+    private func optionalString(from obj: Any?, _ prettyPrinted: Bool) -> String? {
+        guard let obj,
+              JSONSerialization.isValidJSONObject(obj),
+              let data = try? JSONSerialization.data(withJSONObject: obj, options: prettyPrinted ? [.prettyPrinted] : []) else { return nil }
+        return .init(data: data, encoding: .utf8)
     }
 }
 
